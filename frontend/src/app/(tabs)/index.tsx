@@ -1,20 +1,60 @@
 
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  Pressable,
-  StatusBar,
   ImageBackground,
+  Pressable,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+const categories = [
+  ["🌿", "Nature"],
+  ["🍜", "Food"],
+  ["🏛️", "History"],
+  ["💎", "Hidden gems"],
+];
+
+const timeOptions = ["1 hour", "2 hours", "3 hours", "5 hours"];
+const budgetOptions = ["₹ 200", "₹ 500", "₹ 1000", "₹ 2000"];
+
 export default function HomeScreen() {
+  const router = useRouter();
+  const { width } = useWindowDimensions();
+
+  const [selectedTime, setSelectedTime] = useState(2);
+  const [selectedBudget, setSelectedBudget] = useState(1);
+
+  const isDesktop = width >= 768;
+
+  const openDiscover = () => {
+    router.push("/(tabs)/discover");
+  };
+
+  const openCategory = (category: string) => {
+    router.push({
+      pathname: "/(tabs)/discover",
+      params: { category },
+    });
+  };
+
+  const cycleTime = () => {
+    setSelectedTime((previous) => (previous + 1) % timeOptions.length);
+  };
+
+  const cycleBudget = () => {
+    setSelectedBudget((previous) => (previous + 1) % budgetOptions.length);
+  };
+
   return (
     <ImageBackground
       source={{
-        uri: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1200&q=85",
+        uri: "https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=1600&q=90",
       }}
       style={styles.background}
       resizeMode="cover"
@@ -22,45 +62,55 @@ export default function HomeScreen() {
       <SafeAreaView style={styles.safeArea}>
         <StatusBar
           barStyle="dark-content"
-          backgroundColor="transparent"
-          translucent
         />
 
-        {/* Light transparent layer over the background image */}
         <View style={styles.backgroundOverlay}>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            <View style={styles.container}>
-
-              {/* Header */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.scrollContent}
+          >
+            <View
+              style={[
+                styles.container,
+                isDesktop && styles.desktopContainer,
+              ]}
+            >
+              {/* HEADER */}
               <View style={styles.header}>
                 <View>
                   <Text style={styles.locationLabel}>
                     YOUR LOCATION
                   </Text>
+
                   <Text style={styles.location}>
                     📍 Belagavi, Karnataka
                   </Text>
                 </View>
 
-                <View style={styles.profile}>
+                <Pressable
+                  style={styles.profile}
+                  onPress={() => router.push("/(tabs)/trips")}
+                >
                   <Text style={styles.profileText}>K</Text>
-                </View>
+                </Pressable>
               </View>
 
-              {/* Greeting */}
+              {/* GREETING */}
               <View style={styles.greeting}>
                 <Text style={styles.greetingTitle}>
                   Explore more.
                 </Text>
+
                 <Text style={styles.greetingSubtitle}>
                   Make every moment of your journey count.
                 </Text>
               </View>
 
-              {/* Right Now Engine - Solid Green Card */}
+              {/* RIGHT NOW ENGINE */}
               <View style={styles.heroCard}>
                 <View style={styles.heroTop}>
                   <View style={styles.liveDot} />
+
                   <Text style={styles.heroLabel}>
                     YOUR RIGHT NOW GUIDE
                   </Text>
@@ -75,69 +125,107 @@ export default function HomeScreen() {
                 </Text>
 
                 <View style={styles.filters}>
-                  <View style={styles.filter}>
+                  <Pressable
+                    style={styles.filter}
+                    onPress={cycleTime}
+                  >
                     <Text style={styles.filterLabel}>
                       TIME AVAILABLE
                     </Text>
-                    <Text style={styles.filterValue}>
-                      ⏱  3 hours
-                    </Text>
-                  </View>
 
-                  <View style={styles.filter}>
+                    <Text style={styles.filterValue}>
+                      ⏱ {timeOptions[selectedTime]}
+                    </Text>
+
+                    <Text style={styles.filterHint}>
+                      Tap to change
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={styles.filter}
+                    onPress={cycleBudget}
+                  >
                     <Text style={styles.filterLabel}>
                       YOUR BUDGET
                     </Text>
+
                     <Text style={styles.filterValue}>
-                      ₹ 500
+                      {budgetOptions[selectedBudget]}
                     </Text>
-                  </View>
+
+                    <Text style={styles.filterHint}>
+                      Tap to change
+                    </Text>
+                  </Pressable>
                 </View>
 
-                <Pressable style={styles.exploreButton}>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.exploreButton,
+                    pressed && styles.buttonPressed,
+                  ]}
+                  onPress={openDiscover}
+                >
                   <Text style={styles.exploreButtonText}>
-                    Find places for me  →
+                    Find places for me →
                   </Text>
                 </Pressable>
               </View>
 
-              {/* Quick Categories */}
+              {/* CATEGORIES */}
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>
                   Explore your way
                 </Text>
-                <Text style={styles.seeAll}>See all</Text>
+
+                <Pressable onPress={openDiscover}>
+                  <Text style={styles.seeAll}>See all</Text>
+                </Pressable>
               </View>
 
               <View style={styles.categories}>
-                {[
-                  ["🌿", "Nature"],
-                  ["🍜", "Food"],
-                  ["🏛️", "History"],
-                  ["💎", "Hidden gems"],
-                ].map(([icon, label]) => (
-                  <View style={styles.category} key={label}>
-                    <Text style={styles.categoryIcon}>{icon}</Text>
-                    <Text style={styles.categoryLabel}>{label}</Text>
-                  </View>
+                {categories.map(([icon, label]) => (
+                  <Pressable
+                    style={styles.category}
+                    key={label}
+                    onPress={() => openCategory(label)}
+                  >
+                    <Text style={styles.categoryIcon}>
+                      {icon}
+                    </Text>
+
+                    <Text style={styles.categoryLabel}>
+                      {label}
+                    </Text>
+                  </Pressable>
                 ))}
               </View>
 
-              {/* Recommendations */}
+              {/* RECOMMENDATIONS */}
               <View style={styles.sectionHeader}>
                 <View>
                   <Text style={styles.sectionTitle}>
                     Worth exploring
                   </Text>
+
                   <Text style={styles.sectionSubtitle}>
                     Discover something nearby
                   </Text>
                 </View>
 
-                <Text style={styles.seeAll}>View all</Text>
+                <Pressable onPress={openDiscover}>
+                  <Text style={styles.seeAll}>View all</Text>
+                </Pressable>
               </View>
 
-              <View style={styles.placeCard}>
+              <Pressable
+                style={({ pressed }) => [
+                  styles.placeCard,
+                  pressed && styles.cardPressed,
+                ]}
+                onPress={openDiscover}
+              >
                 <View style={styles.placeImage}>
                   <Text style={styles.placeEmoji}>🏰</Text>
                 </View>
@@ -146,21 +234,24 @@ export default function HomeScreen() {
                   <Text style={styles.placeName}>
                     Belagavi Fort
                   </Text>
+
                   <Text style={styles.placeDetails}>
                     Historical place · Belagavi
                   </Text>
+
                   <Text style={styles.placeTag}>
                     A place to explore
                   </Text>
                 </View>
 
                 <Text style={styles.arrow}>→</Text>
-              </View>
+              </Pressable>
 
+              {/* DISCLAIMER */}
               <Text style={styles.disclaimer}>
-                Demo preview · Recommendations and figures are not live data yet.
+                Demo preview · Recommendations and figures are
+                not live data yet.
               </Text>
-
             </View>
           </ScrollView>
         </View>
@@ -184,10 +275,21 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(248, 249, 245, 0.76)",
   },
 
+  scrollContent: {
+    flexGrow: 1,
+  },
+
   container: {
+    width: "100%",
     paddingHorizontal: 22,
     paddingTop: 12,
     paddingBottom: 35,
+  },
+
+  desktopContainer: {
+    maxWidth: 850,
+    alignSelf: "center",
+    paddingHorizontal: 35,
   },
 
   header: {
@@ -243,7 +345,6 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
 
-  /* Solid green Right Now Engine */
   heroCard: {
     backgroundColor: "#234B36",
     borderRadius: 25,
@@ -311,6 +412,12 @@ const styles = StyleSheet.create({
     marginTop: 7,
   },
 
+  filterHint: {
+    color: "#9AA69B",
+    fontSize: 9,
+    marginTop: 5,
+  },
+
   exploreButton: {
     backgroundColor: "#D7E9CB",
     padding: 16,
@@ -323,6 +430,10 @@ const styles = StyleSheet.create({
     color: "#234B36",
     fontSize: 14,
     fontWeight: "800",
+  },
+
+  buttonPressed: {
+    opacity: 0.8,
   },
 
   sectionHeader: {
@@ -377,6 +488,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     marginTop: 9,
+    textAlign: "center",
   },
 
   placeCard: {
@@ -386,6 +498,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 13,
+  },
+
+  cardPressed: {
+    opacity: 0.85,
   },
 
   placeImage: {
