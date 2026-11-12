@@ -1,98 +1,211 @@
-import * as Device from 'expo-device';
-import { Platform, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import React, { useEffect, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  StatusBar,
+  Animated,
+  PanResponder,
+  Pressable,
+  Platform,
+  useWindowDimensions,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { VideoView, useVideoPlayer } from "expo-video";
 
-import { AnimatedIcon } from '@/components/animated-icon';
-import { HintRow } from '@/components/hint-row';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { WebBadge } from '@/components/web-badge';
-import { BottomTabInset, MaxContentWidth, Spacing } from '@/constants/theme';
+export default function WelcomeScreen() {
+  const router = useRouter();
+  const { width, height } = useWindowDimensions();
 
-function getDevMenuHint() {
-  if (Platform.OS === 'web') {
-    return <ThemedText type="small">use browser devtools</ThemedText>;
-  }
-  if (Device.isDevice) {
-    return (
-      <ThemedText type="small">
-        shake device or press <ThemedText type="code">m</ThemedText> in terminal
-      </ThemedText>
-    );
-  }
-  const shortcut = Platform.OS === 'android' ? 'cmd+m (or ctrl+m)' : 'cmd+d';
-  return (
-    <ThemedText type="small">
-      press <ThemedText type="code">{shortcut}</ThemedText>
-    </ThemedText>
+  const videoSource =
+  Platform.OS === "web" && width >= 768
+    ? require("../../assets/videos/mountain-desktop.mp4")
+    : require("../../assets/videos/mountain-welcome.mp4");
+
+const player = useVideoPlayer(videoSource, (player) => {
+  player.loop = true;
+  player.muted = true;
+});
+
+useEffect(() => {
+  const subscription = player.addListener(
+    "statusChange",
+    ({ status }) => {
+      if (status === "readyToPlay") {
+        player.play();
+      }
+    }
   );
-}
 
-export default function HomeScreen() {
+  if (player.status === "readyToPlay") {
+    player.play();
+  }
+
+  return () => subscription.remove();
+}, [player]);
+  const arrowPosition = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const animation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(arrowPosition, {
+          toValue: 10,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+        Animated.timing(arrowPosition, {
+          toValue: 0,
+          duration: 650,
+          useNativeDriver: true,
+        }),
+      ])
+    );
+
+    animation.start();
+    return () => animation.stop();
+  }, [arrowPosition]);
+
+  const openLogin = () => {
+    router.replace("/login");
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gesture) =>
+        gesture.dy < -12 &&
+        Math.abs(gesture.dy) > Math.abs(gesture.dx),
+
+      onPanResponderRelease: (_, gesture) => {
+        if (gesture.dy < -65) {
+          openLogin();
+        }
+      },
+    })
+  ).current;
+
   return (
-    <ThemedView style={styles.container}>
-      <SafeAreaView style={styles.safeArea}>
-        <ThemedView style={styles.heroSection}>
-          <AnimatedIcon />
-          <ThemedText type="title" style={styles.title}>
-            Welcome to&nbsp;Expo
-          </ThemedText>
-        </ThemedView>
+    <View
+      style={[styles.container, { width, height }]}
+      {...panResponder.panHandlers}
+    >
+      <StatusBar hidden />
 
-        <ThemedText type="code" style={styles.code}>
-          get started
-        </ThemedText>
+      <VideoView
+        player={player}
+        style={[
+          StyleSheet.absoluteFillObject,
+          {
+            width: "100%",
+            height: "100%",
+          },
+        ]}
+        contentFit="cover"
+        nativeControls={false}
+        allowsFullscreen={false}
+        allowsPictureInPicture={false}
+      />
 
-        <ThemedView type="backgroundElement" style={styles.stepContainer}>
-          <HintRow
-            title="Try editing"
-            hint={<ThemedText type="code">src/app/index.tsx</ThemedText>}
-          />
-          <HintRow title="Dev tools" hint={getDevMenuHint()} />
-          <HintRow
-            title="Fresh start"
-            hint={<ThemedText type="code">npm run reset-project</ThemedText>}
-          />
-        </ThemedView>
+      <View style={styles.overlay}>
+        <View style={styles.topContent}>
+          <Text style={styles.brand}>WANDER</Text>
+          <Text style={styles.brandSub}>YOUR JOURNEY, YOUR WAY</Text>
+        </View>
 
-        {Platform.OS === 'web' && <WebBadge />}
-      </SafeAreaView>
-    </ThemedView>
+        <View style={styles.bottomContent}>
+          <Text style={styles.heading}>
+            The world is{"\n"}waiting for you.
+          </Text>
+
+          <Text style={styles.description}>
+            Discover places. Find your way.{"\n"}
+            Make every journey unforgettable.
+          </Text>
+
+          <Pressable
+            style={styles.swipeContainer}
+            onPress={openLogin}
+          >
+            <Animated.View
+              style={{
+                transform: [{ translateY: arrowPosition }],
+              }}
+            >
+              <Text style={styles.arrow}>↑</Text>
+            </Animated.View>
+
+            <Text style={styles.swipeText}>
+              {Platform.OS === "web"
+                ? "CLICK OR SWIPE UP TO EXPLORE"
+                : "SWIPE UP TO EXPLORE"}
+            </Text>
+          </Pressable>
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    flexDirection: 'row',
+    backgroundColor: "#14251C",
+    overflow: "hidden",
   },
-  safeArea: {
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    alignItems: 'center',
-    gap: Spacing.three,
-    paddingBottom: BottomTabInset + Spacing.three,
-    maxWidth: MaxContentWidth,
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.30)",
+    justifyContent: "space-between",
+    paddingHorizontal: 28,
+    paddingTop: 65,
+    paddingBottom: 35,
   },
-  heroSection: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.four,
-    gap: Spacing.four,
+  topContent: {
+    alignItems: "center",
   },
-  title: {
-    textAlign: 'center',
+  brand: {
+    color: "#FFFFFF",
+    fontSize: 30,
+    fontWeight: "800",
+    letterSpacing: 7,
   },
-  code: {
-    textTransform: 'uppercase',
+  brandSub: {
+    color: "#E5EDE6",
+    fontSize: 9,
+    letterSpacing: 3,
+    marginTop: 8,
   },
-  stepContainer: {
-    gap: Spacing.three,
-    alignSelf: 'stretch',
-    paddingHorizontal: Spacing.three,
-    paddingVertical: Spacing.four,
-    borderRadius: Spacing.four,
+  bottomContent: {
+    alignItems: "center",
+  },
+  heading: {
+    color: "#FFFFFF",
+    fontSize: 37,
+    fontWeight: "700",
+    textAlign: "center",
+    lineHeight: 45,
+  },
+  description: {
+    color: "#F0F2EE",
+    fontSize: 14,
+    lineHeight: 23,
+    textAlign: "center",
+    marginTop: 15,
+  },
+  swipeContainer: {
+    alignItems: "center",
+    marginTop: 35,
+    padding: 12,
+  },
+  arrow: {
+    color: "#FFFFFF",
+    fontSize: 30,
+    fontWeight: "300",
+  },
+  swipeText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "600",
+    letterSpacing: 2,
+    marginTop: 8,
+    textAlign: "center",
   },
 });
