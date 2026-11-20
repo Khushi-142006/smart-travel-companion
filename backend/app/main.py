@@ -1,4 +1,4 @@
-
+from app.routers.destinations import router as destinations_router
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -7,7 +7,7 @@ app = FastAPI(
     description="Smart Travel Companion API for Belagavi",
     version="1.0.0"
 )
-
+app.include_router(destinations_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
